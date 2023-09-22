@@ -1,6 +1,7 @@
 package com.epam.devrelish;
 
-import javax.annotation.PostConstruct;
+
+import jakarta.annotation.PostConstruct;
 
 public class DevRelza {
     @InjectByType
@@ -9,9 +10,10 @@ public class DevRelza {
     private DevRelActionProducer producer;
     @InjectByType
     private DevRelAnalyzer analyzer;
+
     @PostConstruct
     public void init() {
-        System.out.println(analyzer);
+        System.out.println(metricCollector.getClass());
     }
 
     public void executeDevRelStrategy() {
@@ -22,7 +24,7 @@ public class DevRelza {
 
         producer.produce(devRelActivity);
 
-        System.out.println(metricCollector.collect(devRelActivity) - howMuch);
+        System.out.println("improved by: " + (metricCollector.collect(devRelActivity) - howMuch) * 100 + " DevDollars");
 
     }
 

@@ -1,8 +1,8 @@
 package com.epam.devrelish;
 
-public class RandomMetricsCollector implements MetricsCollector {
+public class MetricsCollectorImpl implements MetricsCollector {
     @Override
     public double collect(String devRelActivity) {
-        return Math.random();
+        return 0;
     }
 }

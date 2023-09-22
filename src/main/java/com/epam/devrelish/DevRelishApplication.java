@@ -4,9 +4,11 @@ package com.epam.devrelish;
 public class DevRelishApplication {
 
     public static void main(String[] args) {
-        DevRelza devRelza = ObjectFactory.getInstance().createObject(DevRelza.class);
-        devRelza.executeDevRelStrategy();
-        ObjectFactory.getInstance().createObject(MyTest.class).test();
+        ApplicationContext context = new ApplicationContext("com.epam");
+        context.getObject(DevRelza.class).executeDevRelStrategy();
+        context.getObject(WithoutInterfaces.class).veryOld();
+        context.getObject(WithoutInterfaces.class).veryOld();
+        context.getObject(WithoutInterfaces.class).veryOld();
     }
 
 }

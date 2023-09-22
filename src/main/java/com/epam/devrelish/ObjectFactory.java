@@ -1,85 +1,76 @@
 package com.epam.devrelish;
 
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
-import javax.annotation.PostConstruct;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ObjectFactory {
 
-    private static final ObjectFactory INSTANCE = new ObjectFactory();
-    private Config config;  // Assuming Config is a class that holds the mapping between interfaces and their implementations
-    private List<ObjectConfigurator> configurators = new ArrayList<>();
-    private List<ProxyConfigurator> proxyConfigurators = new ArrayList<>();
 
-    @SneakyThrows
-    private ObjectFactory() {
-        // Initialize or load the Config object
-        config = new JavaConfig();
-        getConfigurators(configurators,ObjectConfigurator.class);
-        getConfigurators(proxyConfigurators,ProxyConfigurator.class);
-        System.out.println();
+    private ApplicationContext context;
+    private List<ObjectConfigurator> configurators;
+    private List<ProxyConfigurator> proxyConfigurators;
 
+    protected ObjectFactory(ApplicationContext context) {
+        this.context=context;
+        // Initialize the list of ObjectConfigurators
+        configurators = context.getConfig().getImplementations(ObjectConfigurator.class).stream()
+                .map(this::createConfiguratorInstance)
+                .collect(Collectors.toList());
+
+        // Initialize the list of ProxyConfigurators
+        proxyConfigurators = context.getConfig().getImplementations(ProxyConfigurator.class).stream()
+                .map(this::createConfiguratorInstance)
+                .collect(Collectors.toList());
     }
 
-    private void getConfigurators(List configurators, Class type) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-        Set<Class<?>> configuratorClasses = config.getScanner().getSubTypesOf(type);
 
-        for (Class<?> configuratorClass : configuratorClasses) {
-            configurators.add(configuratorClass.getDeclaredConstructor().newInstance());
-        }
-    }
-
-    public static ObjectFactory getInstance() {
-        return INSTANCE;
-    }
 
     @SneakyThrows
     public <T> T createObject(Class<T> type) {
-        T t = resolveImpl(type);
-        configure(t);
-        callPostConstructMethod(t);
-        t = handleProxy(t);
-        return t;
-    }
+        T obj = type.getDeclaredConstructor().newInstance();
 
-    private <T> T handleProxy(T t) {
-        for (ProxyConfigurator proxyConfigurator : proxyConfigurators) {
-            t = (T) proxyConfigurator.wrapWithProxyIfNeeded(t);
-        }
-        return t;
-    }
 
-    private <T> void configure(T t) {
-        for (ObjectConfigurator configurator : configurators) {
-            configurator.configure(t);
-        }
-    }
+        configureObject(obj);
+        invokePostConstruct(obj);
 
-    private <T> T resolveImpl(Class<T> type) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-        T t;
-        if (type.isInterface()) {
-            Class<? extends T> implClass = config.getImplementation(type);
-            t = implClass.getDeclaredConstructor().newInstance();
-        } else {
-            t = type.getDeclaredConstructor().newInstance();
-        }
-        return t;
+        return wrapWithProxyIfNeeded(obj);
     }
 
     @SneakyThrows
-    private <T> void callPostConstructMethod(T t) {
-        for (Method method : t.getClass().getMethods()) {
+    private <T> T createConfiguratorInstance(Class<? extends T> type) {
+        return type.getDeclaredConstructor().newInstance();
+    }
+
+    private void configureObject(Object obj) {
+        for (ObjectConfigurator configurator : configurators) {
+            configurator.configure(obj,context);
+        }
+    }
+
+    @SneakyThrows
+    private void invokePostConstruct(Object obj) {
+        for (Method method : obj.getClass().getMethods()) {
             if (method.isAnnotationPresent(PostConstruct.class)) {
-                method.invoke(t);
+                method.invoke(obj);
             }
         }
     }
 
-
+    private <T> T wrapWithProxyIfNeeded(T obj) {
+        for (ProxyConfigurator proxyConfigurator : proxyConfigurators) {
+            obj = (T) proxyConfigurator.configure(obj);
+        }
+        return obj;
+    }
 }
+
+
+
+
+
 

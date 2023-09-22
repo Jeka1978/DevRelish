@@ -1,5 +1,8 @@
 package com.epam.devrelish;
 
+import lombok.SneakyThrows;
+
 public interface ObjectConfigurator {
-    void configure(Object t);
+    @SneakyThrows
+    void configure(Object obj,ApplicationContext applicationContext);
 }

@@ -1,4 +1,0 @@
-{
-  "com.epam.devrelish.MetricsCollector": "com.epam.devrelish.OptimisticMetricsCollector"
-
-}
